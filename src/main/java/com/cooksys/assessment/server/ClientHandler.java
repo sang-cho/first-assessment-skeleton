@@ -7,6 +7,10 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,8 +19,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ClientHandler implements Runnable {
 	private Logger log = LoggerFactory.getLogger(ClientHandler.class);
+    DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+    Date date = new Date();
 
-	private Socket socket;
+
+    private Socket socket;
 
 	public ClientHandler(Socket socket) {
 		super();
@@ -24,6 +31,7 @@ public class ClientHandler implements Runnable {
 	}
 
 	public void run() {
+
 		try {
 
 			ObjectMapper mapper = new ObjectMapper();
@@ -35,6 +43,15 @@ public class ClientHandler implements Runnable {
 				Message message = mapper.readValue(raw, Message.class);
 
 				switch (message.getCommand()) {
+					case "broadcast":
+						log.info("user <{}> broadcasted message <{}>", message.getUsername(), message.getContents());
+
+					case "@username":
+						//TODO
+						break;
+					case "users":
+						//TODO
+						break;
 					case "connect":
 						log.info("user <{}> connected", message.getUsername());
 						break;
