@@ -47,6 +47,7 @@ cli
       server.end(new Message({ username, command }).toJSON() + '\n')
      } else if (command === 'echo') {
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
+      console.log('this is a test')
       }
       else if (command ==='broadcast'){
         server.write(new Message({ username, command, contents }).toJSON() + '\n')

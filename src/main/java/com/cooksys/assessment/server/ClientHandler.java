@@ -19,8 +19,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ClientHandler implements Runnable {
 	private Logger log = LoggerFactory.getLogger(ClientHandler.class);
-    DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-    Date date = new Date();
+
+    //DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+    //Date date = new Date();
 
 
     private Socket socket;
@@ -45,6 +46,10 @@ public class ClientHandler implements Runnable {
 				switch (message.getCommand()) {
 					case "broadcast":
 						log.info("user <{}> broadcasted message <{}>", message.getUsername(), message.getContents());
+						String hi= mapper.writeValueAsString(message);
+                        writer.write(hi);
+                        writer.flush();
+                        break;
 
 					case "@username":
 						//TODO
