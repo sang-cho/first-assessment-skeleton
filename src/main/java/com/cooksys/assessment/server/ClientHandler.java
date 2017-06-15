@@ -13,6 +13,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -26,8 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class ClientHandler implements Runnable {
 
     static HashMap<String, ClientHandler> listofusers=new HashMap<>();
-
-	//static ArrayList<String> listofusers=new ArrayList<String>();
+    static ArrayList<String> listofusers2=new ArrayList<String>();
 	private Logger log = LoggerFactory.getLogger(ClientHandler.class);
 
     //DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
@@ -45,17 +45,23 @@ public class ClientHandler implements Runnable {
     public PrintWriter writer;
     public ObjectMapper mapper;
 
-    public static void broadcastMessage(String lemessage, HashMap listofclients)throws JsonProcessingException{
+    public void broadcastMessage(String lemessage, HashMap listofclients)throws JsonProcessingException{
         for(ClientHandler key : listofusers.values()){
-         messageSender(lemessage, key);
+
+            messageSender(lemessage, key);
         }
     }
 
-    public static void messageSender(String lesmessage, ClientHandler leclient) throws JsonProcessingException{
-        String messageasstring=leclient.mapper.writeValueAsString(lesmessage);
+    public List<String> getusers(){
+    	return listofusers2;
+    }
+
+    public void messageSender(String lesmessage, ClientHandler leclient) throws JsonProcessingException{
+        String messageasstring=leclient.mapper.writeValueAsString(message);
         //String lolstringtest="testing";
         leclient.writer.write(messageasstring);
         leclient.writer.flush();
+        System.out.println(lesmessage);
         //System.out.println(lesmessage + " " + leclient);
     }
 
@@ -85,16 +91,24 @@ public class ClientHandler implements Runnable {
 						//TODO
 						break;
 					case "users":
+                        log.info("user <{}> used command<{}>", message.getUsername(),message.getCommand());
+						message.setContents(listofusers2.toString());
+						String idkstuff= mapper.writeValueAsString(message);
+						log.info(idkstuff);
+                        writer.write(idkstuff);
+                        writer.flush();
+
 						//TODO
 						break;
 					case "connect":
 						log.info("user <{}> connected", message.getUsername());
                         listofusers.put(message.getUsername(),this);
-                        log.info(message.getUsername() + " " + listofusers.get(message.getUsername()) + " " + listofusers.size());
+                        listofusers2.add(message.getUsername());
+                        //log.info(message.getUsername() + " " + listofusers.get(message.getUsername()) + " " + listofusers.size());
 						break;
 					case "disconnect":
 						log.info("user <{}> disconnected", message.getUsername());
-                        listofusers.remove(message.getUsername());
+                        //listofusers.remove(message.getUsername());
                         log.info(message.getUsername() + " " + listofusers.get(message.getUsername()));
 						this.socket.close();
 						break;

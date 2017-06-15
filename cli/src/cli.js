@@ -50,9 +50,14 @@ cli
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
       console.log('this is a test')
       }
+      else if(command==='users'){
+        server.write(new Message({ username, command, contents }).toJSON() + '\n')
+        console.log(contents)
+      }
       else if (command ==='broadcast'){
         //this.log(Message.fromJSON(buffer).toString())
         server.write(new Message({ username, command, contents }).toJSON() + '\n')
+
       }
       else {
       this.log(`Command <${command}> was not recognized`)
