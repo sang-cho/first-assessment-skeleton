@@ -39,6 +39,7 @@ cli
       cli.exec('exit')
     })
   })
+
   .action(function (input, callback) {
     const [ command, ...rest ] = words(input)
     const contents = rest.join(' ')
@@ -50,6 +51,7 @@ cli
       console.log('this is a test')
       }
       else if (command ==='broadcast'){
+        //this.log(Message.fromJSON(buffer).toString())
         server.write(new Message({ username, command, contents }).toJSON() + '\n')
       }
       else {

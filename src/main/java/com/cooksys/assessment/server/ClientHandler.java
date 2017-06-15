@@ -5,12 +5,18 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.lang.reflect.Array;
 import java.net.Socket;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.sun.deploy.util.SessionState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +24,10 @@ import com.cooksys.assessment.model.Message;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ClientHandler implements Runnable {
+
+    static HashMap<String, ClientHandler> listofusers=new HashMap<>();
+
+	//static ArrayList<String> listofusers=new ArrayList<String>();
 	private Logger log = LoggerFactory.getLogger(ClientHandler.class);
 
     //DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
@@ -31,24 +41,44 @@ public class ClientHandler implements Runnable {
 		this.socket = socket;
 	}
 
-	public void run() {
+	public Message message;
+    public PrintWriter writer;
+    public ObjectMapper mapper;
 
+    public static void broadcastMessage(String lemessage, HashMap listofclients)throws JsonProcessingException{
+        for(ClientHandler key : listofusers.values()){
+         messageSender(lemessage, key);
+        }
+    }
+
+    public static void messageSender(String lesmessage, ClientHandler leclient) throws JsonProcessingException{
+        String messageasstring=leclient.mapper.writeValueAsString(lesmessage);
+        //String lolstringtest="testing";
+        leclient.writer.write(messageasstring);
+        leclient.writer.flush();
+        //System.out.println(lesmessage + " " + leclient);
+    }
+
+	public void run() {
 		try {
 
-			ObjectMapper mapper = new ObjectMapper();
+			mapper = new ObjectMapper();
 			BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+			writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+
+
 
 			while (!socket.isClosed()) {
 				String raw = reader.readLine();
-				Message message = mapper.readValue(raw, Message.class);
+				 message = mapper.readValue(raw, Message.class);
 
 				switch (message.getCommand()) {
 					case "broadcast":
 						log.info("user <{}> broadcasted message <{}>", message.getUsername(), message.getContents());
-						String hi= mapper.writeValueAsString(message);
-                        writer.write(hi);
-                        writer.flush();
+                        broadcastMessage(message.getContents(), listofusers);
+//						String hi= mapper.writeValueAsString(message);
+//                        writer.write(hi);
+//                        writer.flush();
                         break;
 
 					case "@username":
@@ -59,9 +89,13 @@ public class ClientHandler implements Runnable {
 						break;
 					case "connect":
 						log.info("user <{}> connected", message.getUsername());
+                        listofusers.put(message.getUsername(),this);
+                        log.info(message.getUsername() + " " + listofusers.get(message.getUsername()) + " " + listofusers.size());
 						break;
 					case "disconnect":
 						log.info("user <{}> disconnected", message.getUsername());
+                        listofusers.remove(message.getUsername());
+                        log.info(message.getUsername() + " " + listofusers.get(message.getUsername()));
 						this.socket.close();
 						break;
 					case "echo":
@@ -73,9 +107,12 @@ public class ClientHandler implements Runnable {
 				}
 			}
 
+
 		} catch (IOException e) {
 			log.error("Something went wrong :/", e);
 		}
+
 	}
+
 
 }
