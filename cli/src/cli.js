@@ -3,14 +3,18 @@ import { words } from 'lodash'
 import { connect } from 'net'
 import { Message } from './Message'
 
+const chalk = require('chalk')
+
 export const cli = vorpal()
 
 let username
 let server
 
+let lastCommand = 'empty'
 
 let thishost='localhost'
 let thisport='8080'
+
 
 cli
   .delimiter(cli.chalk['yellow']('ftd~$'))
@@ -32,7 +36,19 @@ cli
     })
 
     server.on('data', (buffer) => {
-      this.log(Message.fromJSON(buffer).toString())
+      if (Message.fromJSON(buffer).command === 'connect') {
+         this.log(chalk.red(Message.fromJSON(buffer).toString()))
+       } else if (Message.fromJSON(buffer).command === 'disconnect') {
+         this.log(chalk.white(Message.fromJSON(buffer).toString()))
+       } else if (Message.fromJSON(buffer).command === 'echo') {
+         this.log(chalk.blue(Message.fromJSON(buffer).toString()))
+       } else if (Message.fromJSON(buffer).command === 'broadcast') {
+         this.log(chalk.magenta(Message.fromJSON(buffer).toString()))
+       }  else if (Message.fromJSON(buffer).command === 'users') {
+         this.log(chalk.cyan(Message.fromJSON(buffer).toString()))
+       } else if (Message.fromJSON(buffer).command.startsWith("@")) {
+         this.log(chalk.yellow(Message.fromJSON(buffer).toString()))
+      }
     })
 
     server.on('end', () => {
@@ -41,14 +57,14 @@ cli
   })
 
   .action(function (input, callback) {
-    const [ command, ...rest ] = words(input)
+    const [ command, ...rest ] = words(input, /\S+/g)
     const contents = rest.join(' ')
 
-    if (command === 'disconnect') {
+      if (command === 'disconnect') {
       server.end(new Message({ username, command }).toJSON() + '\n')
      } else if (command === 'echo') {
-      server.write(new Message({ username, command, contents }).toJSON() + '\n')
-      console.log('this is a test')
+      server.write(new Message({ username, command, contents}).toJSON() + '\n')
+      //console.log('this is a test')
       }
       else if(command==='users'){
         server.write(new Message({ username, command, contents }).toJSON() + '\n')
@@ -56,12 +72,13 @@ cli
       }
       else if (command ==='broadcast'){
         //this.log(Message.fromJSON(buffer).toString())
-        server.write(new Message({ username, command, contents }).toJSON() + '\n')
-
+        server.write(new Message({username, command, contents }).toJSON() + '\n')
+      }
+      else if(command.startsWith("@")){
+        server.write(new Message({username, command, contents}).toJSON() + '\n')
       }
       else {
       this.log(`Command <${command}> was not recognized`)
     }
-
     callback()
   })

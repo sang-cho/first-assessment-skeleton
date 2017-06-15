@@ -18,6 +18,7 @@ import java.util.List;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.sun.deploy.util.SessionState;
+import com.sun.deploy.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,10 +30,9 @@ public class ClientHandler implements Runnable {
     static HashMap<String, ClientHandler> listofusers=new HashMap<>();
     static ArrayList<String> listofusers2=new ArrayList<String>();
 	private Logger log = LoggerFactory.getLogger(ClientHandler.class);
+    public String previousCommand;
 
-    //DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-    //Date date = new Date();
-
+    DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
 
     private Socket socket;
 
@@ -57,12 +57,35 @@ public class ClientHandler implements Runnable {
     }
 
     public void messageSender(String lesmessage, ClientHandler leclient) throws JsonProcessingException{
+
+        message.setTimeStamp(getTimestamp());
+        message.setContents(message.getTimeStamp()+ " "+ message.getUsername() + " " +lesmessage);
         String messageasstring=leclient.mapper.writeValueAsString(message);
         //String lolstringtest="testing";
+
         leclient.writer.write(messageasstring);
         leclient.writer.flush();
-        System.out.println(lesmessage);
+        System.out.println(messageasstring);
+        //System.out.println(leclient.toString());
         //System.out.println(lesmessage + " " + leclient);
+    }
+    //same thing as messageSender, only it adds the (whisper) string....probably a better way to do this in the client..."temporary"
+    public void whisperSender(String lesmessage, ClientHandler leclient) throws JsonProcessingException{
+
+        message.setTimeStamp(getTimestamp());
+        message.setContents(message.getTimeStamp()+ " "+ message.getUsername() + " (whisper) " +lesmessage);
+        String messageasstring=leclient.mapper.writeValueAsString(message);
+        //String lolstringtest="testing";
+
+        leclient.writer.write(messageasstring);
+        leclient.writer.flush();
+        System.out.println(messageasstring);
+        //System.out.println(leclient.toString());
+        //System.out.println(lesmessage + " " + leclient);
+    }
+
+    private String getTimestamp() {
+        return dateFormat.format(new Date());
     }
 
 	public void run() {
@@ -75,51 +98,91 @@ public class ClientHandler implements Runnable {
 
 
 			while (!socket.isClosed()) {
-				String raw = reader.readLine();
-				 message = mapper.readValue(raw, Message.class);
+                String raw = reader.readLine();
+                message = mapper.readValue(raw, Message.class);
 
-				switch (message.getCommand()) {
-					case "broadcast":
-						log.info("user <{}> broadcasted message <{}>", message.getUsername(), message.getContents());
-                        broadcastMessage(message.getContents(), listofusers);
+                if(message.getCommand().startsWith("@")){
+                    log.info("user <{}> whispered message <{}>", message.getUsername(), message.getContents());
+                    String username = message.getCommand().substring(1);
+                    ClientHandler targetUser = listofusers.get(username);
+
+                    //System.out.println(username);
+                    //System.out.println(targetUser);
+
+                    String whispmessage=message.getContents();
+                    //System.out.println(whispmessage);
+
+                    whisperSender(whispmessage,targetUser);
+                }
+
+//                if (message.getCommand() == null) {
+//                    message.setCommand(previousCommand);
+//
+//                } else {
+                    switch (message.getCommand()) {
+                        case "broadcast":
+                            log.info("user <{}> broadcasted message <{}>", message.getUsername(), message.getContents());
+                            String realbroadcastMessage = "(all) " + message.getContents();
+                            broadcastMessage(realbroadcastMessage, listofusers);
+                            previousCommand=message.getCommand();
 //						String hi= mapper.writeValueAsString(message);
 //                        writer.write(hi);
 //                        writer.flush();
-                        break;
+                            break;
 
-					case "@username":
-						//TODO
-						break;
-					case "users":
-                        log.info("user <{}> used command<{}>", message.getUsername(),message.getCommand());
-						message.setContents(listofusers2.toString());
-						String idkstuff= mapper.writeValueAsString(message);
-						log.info(idkstuff);
-                        writer.write(idkstuff);
-                        writer.flush();
 
-						//TODO
-						break;
-					case "connect":
-						log.info("user <{}> connected", message.getUsername());
-                        listofusers.put(message.getUsername(),this);
-                        listofusers2.add(message.getUsername());
-                        //log.info(message.getUsername() + " " + listofusers.get(message.getUsername()) + " " + listofusers.size());
-						break;
-					case "disconnect":
-						log.info("user <{}> disconnected", message.getUsername());
-                        //listofusers.remove(message.getUsername());
-                        log.info(message.getUsername() + " " + listofusers.get(message.getUsername()));
-						this.socket.close();
-						break;
-					case "echo":
-						log.info("user <{}> echoed message <{}>", message.getUsername(), message.getContents());
-						String response = mapper.writeValueAsString(message);
-						writer.write(response);
-						writer.flush();
-						break;
-				}
-			}
+//                        case "@username":
+//                            log.info("user <{}> used command<{}>", message.getUsername(), message.getCommand());
+//                            message.setTimeStamp(getTimestamp());
+//                            String whispermessage=message.getContents();
+//                            messageSender(whispermessage,);
+//                            break;
+                        case "users":
+                            log.info("user <{}> used command<{}>", message.getUsername(), message.getCommand());
+                            message.setTimeStamp(getTimestamp());
+                            message.setContents(message.getTimeStamp() + " currently connected users: \n" + StringUtils.join(listofusers2, "\n"));
+                            String idkstuff = mapper.writeValueAsString(message);
+                            //log.info(idkstuff);
+                            previousCommand=message.getCommand();
+                            writer.write(idkstuff);
+                            writer.flush();
+                            break;
+
+                        case "connect":
+                            log.info("user <{}> connected", message.getUsername());
+                            message.setTimeStamp(getTimestamp());
+                            listofusers.put(message.getUsername(), this);
+                            listofusers2.add(message.getUsername());
+                            String connectionMessage = "has connected";
+                            broadcastMessage(connectionMessage, listofusers);
+                            previousCommand=message.getCommand();
+                            //log.info(message.getUsername() + " " + listofusers.get(message.getUsername()) + " " + listofusers.size());
+                            break;
+                        case "disconnect":
+                            log.info("user <{}> disconnected", message.getUsername());
+                            message.setTimeStamp(getTimestamp());
+                            listofusers.remove(message.getUsername(), this);
+                            listofusers2.remove(message.getUsername());
+                            String disconnectMessage = " " + "has disconnected";
+                            broadcastMessage(disconnectMessage, listofusers);
+
+                            //log.info(message.getUsername() + " " + listofusers.get(message.getUsername()));
+                            this.socket.close();
+                            break;
+                        case "echo":
+                            log.info("user <{}> echoed message <{}>", message.getUsername(), message.getContents());
+                            message.setTimeStamp(getTimestamp());
+                            String ogMessage = message.getContents();
+                            message.setContents(message.getTimeStamp() + " " + message.getUsername() + " " + "(" + message.getCommand() + ")" + " " + ogMessage);
+                            String response = mapper.writeValueAsString(message);
+                            System.out.println(response);
+                            previousCommand=message.getCommand();
+                            writer.write(response);
+                            writer.flush();
+                            break;
+                    }
+                }
+            //}
 
 
 		} catch (IOException e) {
