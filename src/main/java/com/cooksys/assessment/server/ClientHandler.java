@@ -30,7 +30,7 @@ public class ClientHandler implements Runnable {
     static HashMap<String, ClientHandler> listofusers=new HashMap<>();
     static ArrayList<String> listofusers2=new ArrayList<String>();
 	private Logger log = LoggerFactory.getLogger(ClientHandler.class);
-    public String previousCommand;
+    static public String previousCommand;
 
     DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
 
@@ -41,9 +41,9 @@ public class ClientHandler implements Runnable {
 		this.socket = socket;
 	}
 
-	public Message message;
-    public PrintWriter writer;
-    public ObjectMapper mapper;
+	public Message message=null;
+    public PrintWriter writer=null;
+    public ObjectMapper mapper=null;
 
     public void broadcastMessage(String lemessage, HashMap listofclients)throws JsonProcessingException{
         for(ClientHandler key : listofusers.values()){
@@ -65,7 +65,7 @@ public class ClientHandler implements Runnable {
 
         leclient.writer.write(messageasstring);
         leclient.writer.flush();
-        System.out.println(messageasstring);
+        //System.out.println(messageasstring);
         //System.out.println(leclient.toString());
         //System.out.println(lesmessage + " " + leclient);
     }
@@ -75,11 +75,11 @@ public class ClientHandler implements Runnable {
         message.setTimeStamp(getTimestamp());
         message.setContents(message.getTimeStamp()+ " "+ message.getUsername() + " (whisper) " +lesmessage);
         String messageasstring=leclient.mapper.writeValueAsString(message);
-        //String lolstringtest="testing";
+
 
         leclient.writer.write(messageasstring);
         leclient.writer.flush();
-        System.out.println(messageasstring);
+        //System.out.println(messageasstring);
         //System.out.println(leclient.toString());
         //System.out.println(lesmessage + " " + leclient);
     }
@@ -88,43 +88,47 @@ public class ClientHandler implements Runnable {
         return dateFormat.format(new Date());
     }
 
+//    private String getPreviousCommand(){
+//        return previousCommand;
+//    }
+
 	public void run() {
 		try {
+
 
 			mapper = new ObjectMapper();
 			BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-
-
 			while (!socket.isClosed()) {
+
+
+
+
+
                 String raw = reader.readLine();
                 message = mapper.readValue(raw, Message.class);
+
+                System.out.println(message.toString());
+
+
+
+
+
 
                 if(message.getCommand().startsWith("@")){
                     log.info("user <{}> whispered message <{}>", message.getUsername(), message.getContents());
                     String username = message.getCommand().substring(1);
                     ClientHandler targetUser = listofusers.get(username);
 
-                    //System.out.println(username);
-                    //System.out.println(targetUser);
-
                     String whispmessage=message.getContents();
-                    //System.out.println(whispmessage);
-
                     whisperSender(whispmessage,targetUser);
                 }
-
-//                if (message.getCommand() == null) {
-//                    message.setCommand(previousCommand);
-//
-//                } else {
                     switch (message.getCommand()) {
                         case "broadcast":
                             log.info("user <{}> broadcasted message <{}>", message.getUsername(), message.getContents());
                             String realbroadcastMessage = "(all) " + message.getContents();
                             broadcastMessage(realbroadcastMessage, listofusers);
-                            previousCommand=message.getCommand();
 //						String hi= mapper.writeValueAsString(message);
 //                        writer.write(hi);
 //                        writer.flush();
@@ -143,7 +147,6 @@ public class ClientHandler implements Runnable {
                             message.setContents(message.getTimeStamp() + " currently connected users: \n" + StringUtils.join(listofusers2, "\n"));
                             String idkstuff = mapper.writeValueAsString(message);
                             //log.info(idkstuff);
-                            previousCommand=message.getCommand();
                             writer.write(idkstuff);
                             writer.flush();
                             break;
@@ -175,14 +178,14 @@ public class ClientHandler implements Runnable {
                             String ogMessage = message.getContents();
                             message.setContents(message.getTimeStamp() + " " + message.getUsername() + " " + "(" + message.getCommand() + ")" + " " + ogMessage);
                             String response = mapper.writeValueAsString(message);
-                            System.out.println(response);
-                            previousCommand=message.getCommand();
                             writer.write(response);
                             writer.flush();
                             break;
+//
+//                         default:
+//                             message.setCommand(previousCommand);
                     }
                 }
-            //}
 
 
 		} catch (IOException e) {
@@ -190,6 +193,5 @@ public class ClientHandler implements Runnable {
 		}
 
 	}
-
 
 }

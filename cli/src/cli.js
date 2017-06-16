@@ -10,7 +10,8 @@ export const cli = vorpal()
 let username
 let server
 
-let lastCommand = 'empty'
+let lastCommand = ''
+let lastContents= ''
 
 let thishost='localhost'
 let thisport='8080'
@@ -48,7 +49,9 @@ cli
          this.log(chalk.cyan(Message.fromJSON(buffer).toString()))
        } else if (Message.fromJSON(buffer).command.startsWith("@")) {
          this.log(chalk.yellow(Message.fromJSON(buffer).toString()))
-      }
+      }  else if (Message.fromJSON(buffer).command===null) {
+        this.log(chalk.grey(Message.fromJSON(buffer).toString()))
+     }
     })
 
     server.on('end', () => {
@@ -60,25 +63,41 @@ cli
     const [ command, ...rest ] = words(input, /\S+/g)
     const contents = rest.join(' ')
 
+    lastCommand=command
+    lastContents=contents
+    //this.log(lastCommand+ ' ' + lastContents)
       if (command === 'disconnect') {
       server.end(new Message({ username, command }).toJSON() + '\n')
      } else if (command === 'echo') {
       server.write(new Message({ username, command, contents}).toJSON() + '\n')
       //console.log('this is a test')
+
       }
       else if(command==='users'){
         server.write(new Message({ username, command, contents }).toJSON() + '\n')
-        console.log(contents)
+        //console.log(contents)
       }
       else if (command ==='broadcast'){
-        //this.log(Message.fromJSON(buffer).toString())
+        //this.log(Message.fromJSONM(buffer).toString())
         server.write(new Message({username, command, contents }).toJSON() + '\n')
       }
       else if(command.startsWith("@")){
         server.write(new Message({username, command, contents}).toJSON() + '\n')
       }
-      else {
-      this.log(`Command <${command}> was not recognized`)
-    }
+      else if(command === null || command===''){
+
+          server.write(new Message({username,lastCommand,lastContents}).toJSON() + '\n')
+      }
+
+        //console.log(username+' ' + lastCommand +' ' + lastContents)
+        // if(lastCommand===null || lastContents===null){
+        //   this.log(`Command <${command}> was not recognized`)
+        // }
+        else{
+        server.write(new Message({username, lastCommand, lastContents}).toJSON() + '\n')
+      }
+
+
+
     callback()
   })
