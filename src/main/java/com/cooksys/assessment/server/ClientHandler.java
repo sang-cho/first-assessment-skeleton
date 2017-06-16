@@ -14,11 +14,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.*;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.sun.deploy.util.SessionState;
-import com.sun.deploy.util.StringUtils;
+//import com.sun.deploy.util.SessionState;
+//import com.sun.deploy.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,7 +145,7 @@ public class ClientHandler implements Runnable {
                         case "users":
                             log.info("user <{}> used command<{}>", message.getUsername(), message.getCommand());
                             message.setTimeStamp(getTimestamp());
-                            message.setContents(message.getTimeStamp() + " currently connected users: \n" + StringUtils.join(listofusers2, "\n"));
+                            message.setContents(message.getTimeStamp() + " currently connected users: \n" + String.join("\n", listofusers2));
                             String idkstuff = mapper.writeValueAsString(message);
                             //log.info(idkstuff);
                             writer.write(idkstuff);
