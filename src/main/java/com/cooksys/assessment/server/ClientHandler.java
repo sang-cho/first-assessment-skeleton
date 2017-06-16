@@ -62,14 +62,12 @@ public class ClientHandler implements Runnable {
         message.setTimeStamp(getTimestamp());
         message.setContents(message.getTimeStamp()+ " "+ message.getUsername() + " " +lesmessage);
         String messageasstring=leclient.mapper.writeValueAsString(message);
-        //String lolstringtest="testing";
-
+        
         leclient.writer.write(messageasstring);
         leclient.writer.flush();
-        //System.out.println(messageasstring);
-        //System.out.println(leclient.toString());
-        //System.out.println(lesmessage + " " + leclient);
+
     }
+    
     //same thing as messageSender, only it adds the (whisper) string....probably a better way to do this in the client..."temporary"
     public void whisperSender(String lesmessage, ClientHandler leclient) throws JsonProcessingException{
 
@@ -80,18 +78,12 @@ public class ClientHandler implements Runnable {
 
         leclient.writer.write(messageasstring);
         leclient.writer.flush();
-        //System.out.println(messageasstring);
-        //System.out.println(leclient.toString());
-        //System.out.println(lesmessage + " " + leclient);
+
     }
 
     private String getTimestamp() {
         return dateFormat.format(new Date());
     }
-
-//    private String getPreviousCommand(){
-//        return previousCommand;
-//    }
 
 	public void run() {
 		try {
@@ -102,20 +94,8 @@ public class ClientHandler implements Runnable {
 			writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 
 			while (!socket.isClosed()) {
-
-
-
-
-
                 String raw = reader.readLine();
                 message = mapper.readValue(raw, Message.class);
-
-                System.out.println(message.toString());
-
-
-
-
-
 
                 if(message.getCommand().startsWith("@")){
                     log.info("user <{}> whispered message <{}>", message.getUsername(), message.getContents());
@@ -130,24 +110,13 @@ public class ClientHandler implements Runnable {
                             log.info("user <{}> broadcasted message <{}>", message.getUsername(), message.getContents());
                             String realbroadcastMessage = "(all) " + message.getContents();
                             broadcastMessage(realbroadcastMessage, listofusers);
-//						String hi= mapper.writeValueAsString(message);
-//                        writer.write(hi);
-//                        writer.flush();
                             break;
 
-
-//                        case "@username":
-//                            log.info("user <{}> used command<{}>", message.getUsername(), message.getCommand());
-//                            message.setTimeStamp(getTimestamp());
-//                            String whispermessage=message.getContents();
-//                            messageSender(whispermessage,);
-//                            break;
                         case "users":
                             log.info("user <{}> used command<{}>", message.getUsername(), message.getCommand());
                             message.setTimeStamp(getTimestamp());
                             message.setContents(message.getTimeStamp() + " currently connected users: \n" + String.join("\n", listofusers2));
                             String idkstuff = mapper.writeValueAsString(message);
-                            //log.info(idkstuff);
                             writer.write(idkstuff);
                             writer.flush();
                             break;
@@ -160,8 +129,8 @@ public class ClientHandler implements Runnable {
                             String connectionMessage = "has connected";
                             broadcastMessage(connectionMessage, listofusers);
                             previousCommand=message.getCommand();
-                            //log.info(message.getUsername() + " " + listofusers.get(message.getUsername()) + " " + listofusers.size());
                             break;
+                            
                         case "disconnect":
                             log.info("user <{}> disconnected", message.getUsername());
                             message.setTimeStamp(getTimestamp());
@@ -169,10 +138,9 @@ public class ClientHandler implements Runnable {
                             listofusers2.remove(message.getUsername());
                             String disconnectMessage = " " + "has disconnected";
                             broadcastMessage(disconnectMessage, listofusers);
-
-                            //log.info(message.getUsername() + " " + listofusers.get(message.getUsername()));
                             this.socket.close();
                             break;
+                            
                         case "echo":
                             log.info("user <{}> echoed message <{}>", message.getUsername(), message.getContents());
                             message.setTimeStamp(getTimestamp());
@@ -182,9 +150,7 @@ public class ClientHandler implements Runnable {
                             writer.write(response);
                             writer.flush();
                             break;
-//
-//                         default:
-//                             message.setCommand(previousCommand);
+
                     }
                 }
 
